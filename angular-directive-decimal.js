@@ -42,9 +42,14 @@ angular.module('angular-directive-decimal', [])
     var formatViewDataIntoModelData = function (viewValue, ngModelCtrl) {
 
       var value = viewValue;
-      var parsedValue = "";
+      var parsedValue;
 
-      // check if valid (one of the validators could have set to be invalid already)
+      // need to handle the situation when the field is invalid due to a validation rule only from this directive
+      //     if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
+      // or any other validation error should not stop the view from updating the model, so don't use ngModelCtrl.$valid
+      //
+      // notice an issue when updating the directive and another validation rule was causing the view to not update the model
+
       if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
 
         if (ngModelCtrl.$isEmpty(value)) {
@@ -71,6 +76,9 @@ angular.module('angular-directive-decimal', [])
 
           parsedValue = value;
         }
+      } else {
+        // if there is an error, then just return back the current view data
+        parsedValue = "";
       }
 
       return parsedValue;
@@ -79,10 +87,18 @@ angular.module('angular-directive-decimal', [])
     var formatModelDataIntoViewData = function (modelValue, ngModelCtrl) {
 
       var value = parseFloat(modelValue);
-      var formattedValue = "";
+      var formattedValue;
 
-      // check if valid (one of the validators could have set to be invalid already)
-      if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
+      // if this directives validation rules say it is invalid, then we do not want to process the model data.  Just set it to the view data
+      // however if another rules validation makes this directive invalid, then we need to handle that based on...
+      //    if the view data is not updated, then just set it to the model data so the user can see what data is causing the error
+      //    if the view data is updated already, then the validation rules could be preventing the model data from updating...so just return the view data
+      //
+      // notice an issue when updating the directive and another validation rule was causing the view to not update the model
+      // notice another issue when updating the directive and another validation rule caused the model to not get updated, but then when click off the directive
+      // a format would fire and the model value would be blank (since it wasn't updated) and then then view value would blank out
+
+      if (ngModelCtrl.$valid) {
 
         // handle empty view data
         if (ngModelCtrl.$isEmpty(value)) {
@@ -106,9 +122,16 @@ angular.module('angular-directive-decimal', [])
             }
           }
 
-          // handle formatting
-          //formattedValue = value.toString() + "%";
           formattedValue = value.toString();
+        }
+      } else {
+
+        if (ngModelCtrl.$isEmpty(ngModelCtrl.$viewValue)) {
+          // if the view data is empty, assume it hasn't been updated yet...so use the model data for the return value
+          formattedValue = modelValue.toString();
+        } else {
+          // if the view data is not empty, assume it has been updated...so just return the view value
+          formattedValue = ngModelCtrl.$viewValue;
         }
       }
 
@@ -243,7 +266,7 @@ angular.module('angular-directive-decimal', [])
         var viewValue;
 
         // since the view data has changed...the parseViewToModel has already ran and updated the $modelValue
-        if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
+        if (ngModelCtrl.$valid) {
           // if the data is valid, run the formatter to update the $viewValue
           var modelValue = ngModelCtrl.$modelValue;
           viewValue = formatModelDataIntoViewData(modelValue, ngModelCtrl);
