@@ -521,6 +521,8 @@ describe('angular-directive-decimal', function () {
         expectTheFollowing(scope, form, expectedModelValue, expectedViewValue, expectedValid, expectedPristine);
       });
     });
+
+    describe.skip("when another validation rule sets invalid", function(){});
   });
 
   var expectTheFollowing = function(scope, form, expectedModelValue, expectedViewValue, expectedValid, expectedPristine) {

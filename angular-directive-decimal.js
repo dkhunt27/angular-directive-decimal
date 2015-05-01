@@ -41,34 +41,35 @@ angular.module('angular-directive-decimal', [])
 
     var formatViewDataIntoModelData = function (viewValue, ngModelCtrl) {
 
+      var value = viewValue;
       var parsedValue = "";
 
       // check if valid (one of the validators could have set to be invalid already)
-      if (ngModelCtrl.$valid) {
+      if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
 
-        if (ngModelCtrl.$isEmpty(viewValue)) {
+        if (ngModelCtrl.$isEmpty(value)) {
           // handle empty view data since we can't covert it back to a decimal
           parsedValue = "";
         } else {
 
           // check for non numeric
-          var valid = isValidNumber(viewValue, ngModelCtrl);
+          var valid = isValidNumber(value, ngModelCtrl);
 
           if (!valid) {
-            viewValue = '';
+            value = '';
             ngModelCtrl.$setValidity('decimal', false);
           }
 
           if (valid) {
             // handle precision
             if (precision > -1) {
-              viewValue = roundToPrecision(viewValue, precision);
+              value = roundToPrecision(value, precision);
             } else {
-              viewValue = parseFloat(viewValue);
+              value = parseFloat(value);
             }
           }
 
-          parsedValue = viewValue;
+          parsedValue = value;
         }
       }
 
@@ -77,21 +78,22 @@ angular.module('angular-directive-decimal', [])
 
     var formatModelDataIntoViewData = function (modelValue, ngModelCtrl) {
 
+      var value = parseFloat(modelValue);
       var formattedValue = "";
 
       // check if valid (one of the validators could have set to be invalid already)
-      if (ngModelCtrl.$valid) {
+      if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
 
         // handle empty view data
-        if (ngModelCtrl.$isEmpty(modelValue)) {
+        if (ngModelCtrl.$isEmpty(value)) {
           formattedValue = "";
         } else {
 
           // handle non numeric
-          var valid = isValidNumber(modelValue, ngModelCtrl);
+          var valid = isValidNumber(value, ngModelCtrl);
 
           if (!valid) {
-            modelValue = '';
+            value = '';
             ngModelCtrl.$setValidity('decimal', false);
           }
 
@@ -99,14 +101,14 @@ angular.module('angular-directive-decimal', [])
 
             // handle precision
             if (precision > -1) {
-              modelValue = roundToPrecision(modelValue, precision);
-              modelValue = formatToPrecision(modelValue, precision);
+              value = roundToPrecision(value, precision);
+              value = formatToPrecision(value, precision);
             }
           }
 
           // handle formatting
-          //formattedValue = modelValue.toString() + "%";
-          formattedValue = modelValue.toString();
+          //formattedValue = value.toString() + "%";
+          formattedValue = value.toString();
         }
       }
 
@@ -114,21 +116,27 @@ angular.module('angular-directive-decimal', [])
     };
 
     var minValidator = function (value, ngModelCtrl) {
-      if (!ngModelCtrl.$isEmpty(value) && value < min) {
-        ngModelCtrl.$setValidity('decimal', false);
-        return value;
-      } else {
-        return value;
+
+      if (!ngModelCtrl.$isEmpty(value)) {
+        var parsed = parseFloat(value);
+        if (!isNaN(parsed) && parsed < min) {
+          ngModelCtrl.$setValidity('decimal', false);
+        }
       }
+
+      return value;
     };
 
     var maxValidator = function (value, ngModelCtrl) {
-      if (!ngModelCtrl.$isEmpty(value) && value > max) {
-        ngModelCtrl.$setValidity('decimal', false);
-        return value;
-      } else {
-        return value;
+
+      if (!ngModelCtrl.$isEmpty(value)) {
+        var parsed = parseFloat(value);
+        if (!isNaN(parsed) && value > max) {
+          ngModelCtrl.$setValidity('decimal', false);
+        }
       }
+
+      return value;
     };
 
     var addParsers = function (ngModelCtrl, attrs) {
@@ -235,7 +243,7 @@ angular.module('angular-directive-decimal', [])
         var viewValue;
 
         // since the view data has changed...the parseViewToModel has already ran and updated the $modelValue
-        if (ngModelCtrl.$valid) {
+        if (ngModelCtrl.$error && !ngModelCtrl.$error.decimal) {
           // if the data is valid, run the formatter to update the $viewValue
           var modelValue = ngModelCtrl.$modelValue;
           viewValue = formatModelDataIntoViewData(modelValue, ngModelCtrl);
